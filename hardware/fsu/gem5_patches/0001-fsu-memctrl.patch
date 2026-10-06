@@ -23,7 +23,7 @@ index c427f0de81..d8f97160cc 100644
          enums=['MemSched'])
  SimObject('HeteroMemCtrl.py', sim_objects=['HeteroMemCtrl'])
 diff --git a/src/mem/mem_ctrl.cc b/src/mem/mem_ctrl.cc
-index 97c7741abd..41e6d7b5a1 100644
+index 97c7741abd..c2652dbcd9 100644
 --- a/src/mem/mem_ctrl.cc
 +++ b/src/mem/mem_ctrl.cc
 @@ -40,15 +40,20 @@
@@ -55,7 +55,7 @@ index 97c7741abd..41e6d7b5a1 100644
      port(name() + ".port", *this), isTimingMode(false),
      retryRdReq(false), retryWrReq(false),
      nextReqEvent([this] {processNextReqEvent(dram, respQueue,
-@@ -403,6 +409,61 @@ MemCtrl::printQs() const
+@@ -403,6 +409,63 @@ MemCtrl::printQs() const
  #endif // TRACING_ON
  }
  
@@ -106,10 +106,12 @@ index 97c7741abd..41e6d7b5a1 100644
 +    DPRINTF(FSU, "[FSU-EVAC] page %#x (4096 B) written to %s\n", page,
 +            path);
 +
++    // Abstract stall: the request is never answered, so the CPU stays
++    // blocked. tc->suspend() is not used: TimingSimpleCPU asserts if it is
++    // called while the CPU waits on a response (seen in cached runs).
 +    if (tc) {
-+        DPRINTF(FSU, "[FSU-STALL] suspending context %d (abstract stall)\n",
-+                tc->contextId());
-+        tc->suspend();
++        DPRINTF(FSU, "[FSU-STALL] holding request, context %d stalled "
++                "(abstract stall)\n", tc->contextId());
 +    }
 +    exitSimLoop("FSU: W^X violation");
 +}
@@ -117,7 +119,7 @@ index 97c7741abd..41e6d7b5a1 100644
  bool
  MemCtrl::recvTimingReq(PacketPtr pkt)
  {
-@@ -416,6 +477,13 @@ MemCtrl::recvTimingReq(PacketPtr pkt)
+@@ -416,6 +479,13 @@ MemCtrl::recvTimingReq(PacketPtr pkt)
      panic_if(!(pkt->isRead() || pkt->isWrite()),
               "Should only see read and writes at memory controller\n");
  

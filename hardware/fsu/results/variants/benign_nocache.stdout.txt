@@ -1,0 +1,23 @@
+warn: The se.py script is deprecated. It will be removed in future releases of  gem5.
+Global frequency set at 1000000000000 ticks per second
+warn: No dot file generated. Please install pydot to generate the dot file and pdf.
+src/mem/dram_interface.cc:690: warn: DRAM device capacity (8192 Mbytes) does not match the address range assigned (512 Mbytes)
+src/base/statistics.hh:279: warn: One of the stats is a legacy stat. Legacy stat is a stat that does not belong to any statistics::Group. Legacy stat is deprecated.
+src/base/remote_gdb.cc:418: warn: Sockets disabled, not accepting gdb connections
+gem5 Simulator System.  https://www.gem5.org
+gem5 is copyrighted software; use the --copyright option for details.
+
+gem5 version 25.1.0.1
+gem5 compiled Oct  6 2026 18:02:44
+gem5 started Oct  6 2026 18:05:17
+gem5 executing on Zeran, pid 669
+command line: ./build/X86/gem5.opt --debug-flags=FSU --debug-file=fsu_trace.txt configs/deprecated/example/se.py --cpu-type=TimingSimpleCPU --cmd=/home/itzzi/hybrid-forensics-framework/hardware/fsu/workloads/benign
+
+info: Standard input is not a terminal, disabling listeners.
+**** REAL SIMULATION ****
+src/sim/syscall_emul.cc:86: warn: ignoring syscall set_robust_list(...)
+src/sim/syscall_emul.cc:86: warn: ignoring syscall rseq(...)
+src/sim/mem_state.cc:443: info: Increasing stack size by one page.
+src/sim/syscall_emul.cc:86: warn: ignoring syscall mprotect(...)
+[Benign] sum=14706430802919965685
+Exiting @ tick 448615215000 because exiting with last active thread context

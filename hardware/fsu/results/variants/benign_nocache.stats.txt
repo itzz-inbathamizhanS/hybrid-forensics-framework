@@ -1,0 +1,3 @@
+simTicks                                 448615215000                       # Number of ticks simulated (Tick)
+simInsts                                      4562621                       # Number of instructions simulated (Count)
+system.cpu.ipc                               0.005085                       # IPC: instructions per cycle (core level) ((Count/Cycle))
