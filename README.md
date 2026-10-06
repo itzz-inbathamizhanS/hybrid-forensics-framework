@@ -116,6 +116,8 @@ The Native RAM Scanner uses several heuristics to detect anomalies:
 
 *Note: Known JIT engines and AV tools are safely whitelisted to a Risk Score of 10 to reduce CLI noise, while preserving visibility in the final JSON report.*
 
+> **New to the project? Start with the plain-language guide: [docs/guide/README.md](docs/guide/README.md).**
+
 ## Phase 2: Hardware FSU (gem5)
 
 A Forensic Snoop Unit (FSU) is being modelled in gem5 inside the memory controller. It flags instruction fetches from pages that were written (W^X violations), halts the simulated CPU and dumps the page with a SHA-256 hash.
