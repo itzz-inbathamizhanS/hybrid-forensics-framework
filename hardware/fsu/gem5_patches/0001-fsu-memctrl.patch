@@ -1,0 +1,162 @@
+diff --git a/src/mem/MemCtrl.py b/src/mem/MemCtrl.py
+index 215ae271eb..fca6c53da8 100644
+--- a/src/mem/MemCtrl.py
++++ b/src/mem/MemCtrl.py
+@@ -90,6 +90,7 @@ class MemCtrl(QoSMemCtrl):
+     )
+ 
+     # scheduler, address map and page policy
++    fsu_lookup_latency = Param.Latency("0ns", "FSU tap lookup latency added to each request")
+     mem_sched_policy = Param.MemSched("frfcfs", "Memory scheduling policy")
+ 
+     # pipeline latency of the controller and PHY, split into a
+diff --git a/src/mem/SConscript b/src/mem/SConscript
+index c427f0de81..d8f97160cc 100644
+--- a/src/mem/SConscript
++++ b/src/mem/SConscript
+@@ -48,6 +48,7 @@ SimObject('AddrMapper.py', sim_objects=['AddrMapper', 'RangeAddrMapper'])
+ SimObject('Bridge.py', sim_objects=['BridgeBase', 'Bridge'])
+ SimObject('SysBridge.py', sim_objects=['SysBridge'])
+ DebugFlag('SysBridge')
++DebugFlag('FSU', 'Forensic Snoop Unit traces')
+ SimObject('MemCtrl.py', sim_objects=['MemCtrl'],
+         enums=['MemSched'])
+ SimObject('HeteroMemCtrl.py', sim_objects=['HeteroMemCtrl'])
+diff --git a/src/mem/mem_ctrl.cc b/src/mem/mem_ctrl.cc
+index 97c7741abd..41e6d7b5a1 100644
+--- a/src/mem/mem_ctrl.cc
++++ b/src/mem/mem_ctrl.cc
+@@ -40,15 +40,20 @@
+ 
+ #include "mem/mem_ctrl.hh"
+ 
++#include "arch/x86/regs/misc.hh"
++#include "base/output.hh"
+ #include "base/trace.hh"
++#include "cpu/thread_context.hh"
+ #include "debug/DRAM.hh"
+ #include "debug/Drain.hh"
++#include "debug/FSU.hh"
+ #include "debug/MemCtrl.hh"
+ #include "debug/NVM.hh"
+ #include "debug/QOS.hh"
+ #include "mem/dram_interface.hh"
+ #include "mem/mem_interface.hh"
+ #include "mem/nvm_interface.hh"
++#include "sim/sim_exit.hh"
+ #include "sim/system.hh"
+ 
+ namespace gem5
+@@ -59,6 +64,7 @@ namespace memory
+ 
+ MemCtrl::MemCtrl(const MemCtrlParams &p) :
+     qos::MemCtrl(p),
++    fsuLookupLatency(p.fsu_lookup_latency),
+     port(name() + ".port", *this), isTimingMode(false),
+     retryRdReq(false), retryWrReq(false),
+     nextReqEvent([this] {processNextReqEvent(dram, respQueue,
+@@ -403,6 +409,61 @@ MemCtrl::printQs() const
+ #endif // TRACING_ON
+ }
+ 
++bool
++MemCtrl::fsuInspectPacket(PacketPtr pkt)
++{
++    const Addr page = pkt->getAddr() & ~Addr(0xFFF);
++    if (pkt->req->isInstFetch()) {
++        return fsuWrittenPages.count(page) != 0;
++    }
++    if (pkt->isWrite()) {
++        fsuWrittenPages.insert(page);
++    }
++    return false;
++}
++
++void
++MemCtrl::fsuHandleViolation(PacketPtr pkt)
++{
++    const Addr page = pkt->getAddr() & ~Addr(0xFFF);
++    DPRINTF(FSU, "[FSU-ALERT] W^X violation: IFetch addr %#x on written "
++            "page %#x\n", pkt->getAddr(), page);
++
++    ThreadContext *tc = nullptr;
++    if (pkt->req->hasContextId()) {
++        tc = system()->threads[pkt->req->contextId()];
++    } else if (system()->threads.size() > 0) {
++        tc = system()->threads[0];
++    }
++    if (tc) {
++        // Stand-in for the page-table walker; not meaningful in SE mode
++        DPRINTF(FSU, "[FSU-CR3] Cr3=%#x (ctx %d)\n",
++                tc->readMiscRegNoEffect(X86ISA::misc_reg::Cr3),
++                tc->contextId());
++    }
++
++    // Evacuation: functional read of the 4 KB page into a file
++    std::vector<uint8_t> buf(4096);
++    system()->physProxy.readBlob(page, buf.data(), buf.size());
++    simout.createSubdirectory("fsu_evidence");
++    std::string dir = simout.resolve("fsu_evidence");
++    std::string path = csprintf("%s/%#x.bin", dir, page);
++    FILE *f = fopen(path.c_str(), "wb");
++    if (f) {
++        fwrite(buf.data(), 1, buf.size(), f);
++        fclose(f);
++    }
++    DPRINTF(FSU, "[FSU-EVAC] page %#x (4096 B) written to %s\n", page,
++            path);
++
++    if (tc) {
++        DPRINTF(FSU, "[FSU-STALL] suspending context %d (abstract stall)\n",
++                tc->contextId());
++        tc->suspend();
++    }
++    exitSimLoop("FSU: W^X violation");
++}
++
+ bool
+ MemCtrl::recvTimingReq(PacketPtr pkt)
+ {
+@@ -416,6 +477,13 @@ MemCtrl::recvTimingReq(PacketPtr pkt)
+     panic_if(!(pkt->isRead() || pkt->isWrite()),
+              "Should only see read and writes at memory controller\n");
+ 
++    // --- FSU tap ---
++    if (fsuInspectPacket(pkt)) {
++        fsuHandleViolation(pkt);
++        return true;  // request left pending: CPU is stalled
++    }
++    pkt->headerDelay += fsuLookupLatency;
++
+     // Calc avg gap between requests
+     if (prevArrival != 0) {
+         stats.totGap += curTick() - prevArrival;
+diff --git a/src/mem/mem_ctrl.hh b/src/mem/mem_ctrl.hh
+index 917798ffa7..7d0fa9da14 100644
+--- a/src/mem/mem_ctrl.hh
++++ b/src/mem/mem_ctrl.hh
+@@ -47,6 +47,7 @@
+ #define __MEM_CTRL_HH__
+ 
+ #include <deque>
++#include <unordered_set>
+ #include <string>
+ #include <unordered_set>
+ #include <utility>
+@@ -246,6 +247,16 @@ typedef std::deque<MemPacket*> MemPacketQueue;
+ class MemCtrl : public qos::MemCtrl
+ {
+   protected:
++    // --- Forensic Snoop Unit (FSU) state ---
++    /** 4 KB physical pages that have been written (set only grows) */
++    std::unordered_set<Addr> fsuWrittenPages;
++    /** Latency added by the FSU tap lookup to each request */
++    Tick fsuLookupLatency;
++    /** Returns true if pkt is an IFetch from a previously written page */
++    bool fsuInspectPacket(PacketPtr pkt);
++    /** Log, dump page evidence, stall the CPU and stop the simulation */
++    void fsuHandleViolation(PacketPtr pkt);
++
+ 
+     // For now, make use of a queued response port to avoid dealing with
+     // flow control for the responses being sent back
