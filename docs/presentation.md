@@ -102,6 +102,14 @@
 
 ---
 
+## Slide 10: Hardware Layer, the Forensic Snoop Unit (simulated)
+
+> "Software scanners trust the operating system, so a kernel rootkit can blind them. To explore that gap we simulated a Forensic Snoop Unit in gem5, inside the memory controller. It flags an instruction fetch from a page that was written earlier, which is the signature of reflective injection. It stops the simulated CPU and saves the page with a SHA-256. The framework imports those results with `/fsu` and shows them on the same timeline as the software findings.
+>
+> What we measured, honestly: it caught our synthetic trigger without caches, and it missed it with caches unless the code flushes the line. Without caches, an assumed 1 ns tap latency made the benign workload 2.35% slower. This is a simulation of one synthetic attack, not a silicon result."
+
+---
+
 ## Q&A Prep (Anticipated Questions)
 
 **Q: If you aren't using a kernel driver, how do you read memory protected by the OS?**
@@ -112,3 +120,6 @@
 
 **Q: How does this tool handle large RAM sizes (e.g., 64GB)?**
 *A: The Live RAM scanner is highly optimized. It doesn't dump the full 64GB to disk. It queries the metadata of the memory pages first, which takes milliseconds. It only extracts or flags the specific memory pages that violate our heuristic rules.*
+
+**Q: Does the hardware layer prove the FSU works in real silicon?**
+*A: No. It is a gem5 simulation with one synthetic trigger. It shows the idea can detect write-then-execute at the memory controller, and it documents the limits: caches can hide the attack, CR3 is a placeholder in SE mode, JIT code would false-positive, and the CPU stall is abstract. See docs/fsu/results.md.*
