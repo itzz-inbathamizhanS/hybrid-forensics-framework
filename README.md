@@ -120,7 +120,7 @@ The Native RAM Scanner uses several heuristics to detect anomalies:
 
 A Forensic Snoop Unit (FSU) is being modelled in gem5 inside the memory controller. It flags instruction fetches from pages that were written (W^X violations), halts the simulated CPU and dumps the page with a SHA-256 hash.
 The Python framework imports these results (`src/hardware/`) and shows them next to the software RAM-scan findings in one timeline.
-Status: simulation work in progress; no overhead numbers are claimed until measured. See `docs/fsu/` and `hardware/fsu/`.
+Measured so far (one synthetic trigger, gem5 SE mode): the FSU catches the write-then-execute pattern without caches and misses it with caches unless the line is flushed. With an assumed 1 ns tap latency the benign workload ran 2.35% longer (no-cache setup). See `docs/fsu/results.md` for the data and limits, `docs/fsu/demo.md` for the demo.
 
 ## 🧪 Testing Suite (Master Revision Loop)
 

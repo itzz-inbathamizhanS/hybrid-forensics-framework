@@ -1,0 +1,4 @@
+simTicks                                 459159249000                       # Number of ticks simulated (Tick)
+hostSeconds                                     13.84                       # Real time elapsed on the host (Second)
+simInsts                                      4562621                       # Number of instructions simulated (Count)
+system.cpu.ipc                               0.004968                       # IPC: instructions per cycle (core level) ((Count/Cycle))

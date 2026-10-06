@@ -24,7 +24,7 @@ All memory requests pass the IMC, so a tap there sees them.
 ## 5. Validation approach
 Implemented in gem5 by patching `MemCtrl` (see `gem5_guide.md` and `hardware/fsu/gem5_patches/`).
 
-The original draft claims "proves ... less than a 1% degradation in IPC". That is **TO VERIFY** and is **not** a result of this project. Overhead will be measured in Phase 6 and recorded in `docs/fsu/results.md`; claims here will then be rewritten to match.
+The original draft claimed "less than 1% IPC degradation". **That claim is not supported.** Measured in `results.md` (benign workload, no caches, assumed tap latency): +0.00% at 0 ns (by construction), +2.35% simTicks / -2.3% IPC at 1 ns, +10.31% at 5 ns. These reflect an assumed latency in a simulation, not silicon. Cached-system overhead was not measured. The earlier wording "proves" is withdrawn: the simulation demonstrates detection of one synthetic trigger without caches, and a miss with caches unless the line is flushed.
 
 ## 6. Known limits
 - Cached runs: the controller only sees cache misses/writebacks; a dirty line may never reach it. Cached variant needs `clflush` in the trigger. **TO VERIFY**

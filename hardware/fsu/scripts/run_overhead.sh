@@ -14,7 +14,7 @@ run() {  # label gem5dir fsu_lat
             "$REPO/hardware/fsu/scripts/se_fsu.py" --cpu-type=TimingSimpleCPU --cmd="$W" \
             > "$R/${label}_$i.stdout.txt" 2>&1 )
         grep -E 'simTicks|simInsts|system.cpu.ipc|hostSeconds' "$out/stats.txt" > "$R/${label}_$i.stats.txt"
-        grep -c FSU-ALERT "$out"/*.txt 2>/dev/null | head -0
+
         echo "$label run $i: $(grep -E 'simTicks' "$R/${label}_$i.stats.txt" | awk '{print $2}')"
         rm -rf "$out"
     done
