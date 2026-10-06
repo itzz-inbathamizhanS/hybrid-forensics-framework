@@ -1,0 +1,23 @@
+# gem5 baseline: hello (TimingSimpleCPU, no caches), gem5 stable f5c5a6e390
+
+warn: The se.py script is deprecated. It will be removed in future releases of  gem5.
+Global frequency set at 1000000000000 ticks per second
+warn: No dot file generated. Please install pydot to generate the dot file and pdf.
+src/mem/dram_interface.cc:690: warn: DRAM device capacity (8192 Mbytes) does not match the address range assigned (512 Mbytes)
+src/base/statistics.hh:279: warn: One of the stats is a legacy stat. Legacy stat is a stat that does not belong to any statistics::Group. Legacy stat is deprecated.
+src/base/remote_gdb.cc:418: warn: Sockets disabled, not accepting gdb connections
+gem5 Simulator System.  https://www.gem5.org
+gem5 is copyrighted software; use the --copyright option for details.
+gem5 version 25.1.0.1
+gem5 compiled Oct  6 2026 17:39:18
+gem5 started Oct  6 2026 17:43:12
+gem5 executing on Zeran, pid 20120
+command line: ./build/X86/gem5.opt configs/deprecated/example/se.py --cpu-type=TimingSimpleCPU --cmd=tests/test-progs/hello/bin/x86/linux/hello
+info: Standard input is not a terminal, disabling listeners.
+**** REAL SIMULATION ****
+Hello world!
+Exiting @ tick 454646000 because exiting with last active thread context
+
+simTicks                                    454646000                       # Number of ticks simulated (Tick)
+simInsts                                         5701                       # Number of instructions simulated (Count)
+system.cpu.ipc                               0.006270                       # IPC: instructions per cycle (core level) ((Count/Cycle))

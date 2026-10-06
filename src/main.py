@@ -128,6 +128,32 @@ from prompt_toolkit.styles import Style
 import shlex
 import time
 
+def run_fsu_import(fsu_dir: str, scan_json: str = None):
+    """Imports FSU results and shows them with software RAM-scan findings on one timeline."""
+    import json
+    from src.hardware.fsu_importer import import_fsu_results
+    from src.correlation.threat_scorer import ThreatScorer
+    from src.response.report_generator import ReportGenerator
+
+    hw = import_fsu_results(fsu_dir)
+    timeline = list(hw["events"])
+    if scan_json:
+        with open(scan_json, encoding="utf-8") as fp:
+            sw = json.load(fp).get("correlated_events", [])
+        timeline = sw + timeline
+    threats = ThreatScorer().evaluate_timeline(timeline)
+
+    report_gen = ReportGenerator("fsu_import")
+    report_data = {"evidence_metadata": {"evidence_id": "fsu_import"},
+                   "timeline": timeline, "threats": threats, "hardware": hw}
+    json_path = report_gen.generate_json_report(report_data)
+    html_path = report_gen.generate_html_report(report_data)
+    n_alerts = sum(1 for e in hw["events"] if e["event_type"] == "FSU_WX_VIOLATION")
+    console.print(f"[bold green][+] FSU import:[/bold green] {n_alerts} W^X alert(s), "
+                  f"{len(hw['evidence'])} evidence page(s)")
+    console.print(f"JSON: {json_path}\nHTML: {html_path}\n")
+
+
 def interactive_repl():
     style = Style.from_dict({
         'prompt': 'ansicyan bold',
@@ -171,6 +197,7 @@ def interactive_repl():
             table.add_row("/capture", "Deep forensic capture: scan + process MiniDumps")
             table.add_row("/capture --driver", "Try winpmem driver first, then native fallback")
             table.add_row("/analyze <type> <path> [mount]", "Analyze an existing image. Type: memory|disk|hybrid")
+            table.add_row("/fsu <folder> [scan.json]", "Import FSU (gem5) results; optionally merge a saved /scan report")
             table.add_row("/clear", "Clear the terminal")
             table.add_row("/exit", "Exit the framework")
             console.print(table)
@@ -204,6 +231,14 @@ def interactive_repl():
             if result and result.endswith(".raw"):
                 # winpmem succeeded — run the full Volatility pipeline
                 run_pipeline(result, "memory", None)
+        elif cmd == "/fsu":
+            if len(parts) < 2:
+                console.print("[red]Usage: /fsu <results_folder> [scan.json][/red]")
+                continue
+            try:
+                run_fsu_import(parts[1], parts[2] if len(parts) > 2 else None)
+            except (FileNotFoundError, ValueError) as e:
+                console.print(f"[red]FSU import failed: {e}[/red]")
         elif cmd == "/analyze":
             if len(parts) < 3:
                 console.print("[red]Usage: /analyze <type> <path> [mount_point][/red]")

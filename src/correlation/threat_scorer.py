@@ -39,6 +39,12 @@ class ThreatScorer:
                     risk_score += 40
                     threat_description += f"Running from unusual directory: {path}."
             
+            # Rule 3: Hardware (FSU) W^X violation: instruction fetch from a written page
+            elif event["source_module"] == "hardware" and event["event_type"] == "FSU_WX_VIOLATION":
+                risk_score = 100
+                threat_description = event.get("description", "Hardware W^X violation")
+
+
             # If a threat was detected, format it strictly to the CorrelatedEvent schema
             if risk_score > 0:
                 # Cap risk score at 100 per the JSON schema rules

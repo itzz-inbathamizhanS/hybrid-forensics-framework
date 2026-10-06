@@ -1,0 +1,4 @@
+11164413000: system.mem_ctrls: [FSU-ALERT] W^X violation: IFetch addr 0xc8000 on written page 0xc8000
+11164413000: system.mem_ctrls: [FSU-CR3] Cr3=0x64 (ctx 0)
+11164413000: system.mem_ctrls: [FSU-EVAC] page 0xc8000 (4096 B) written to m5out/fsu_evidence/0xc8000.bin
+11164413000: system.mem_ctrls: [FSU-STALL] holding request, context 0 stalled (abstract stall)
