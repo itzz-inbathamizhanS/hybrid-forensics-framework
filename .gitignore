@@ -3,4 +3,8 @@ __pycache__/
 *.pyc
 .pytest_cache/
 output/
-temp/ 
+temp/
+*.exe
+*.raw
+hardware/fsu/results/**/*.bin
+m5out/

@@ -32,6 +32,7 @@ hybrid-forensics-framework/
 ├── docs/                      # Architectural documentation and guides
 ├── output/                    # Generated JSON and HTML reports
 ├── src/
+│   ├── main.py                # Interactive CLI Orchestrator
 │   ├── capture/               # Phase 1: Native Live RAM scanning (Win32 APIs)
 │   │   ├── native_ram.py      # Core zero-binary memory walking & heuristics
 │   │   └── live_ram.py        # Volatility-based acquisition (fallback)
@@ -42,8 +43,8 @@ hybrid-forensics-framework/
 │   ├── memory/                # Process scanning and Volatility wrappers
 │   └── response/              # HTML/JSON report generation
 ├── tests/                     # Unit and integration tests
-├── requirements.txt           # Python dependencies (rich, questionary)
-└── main.py                    # Interactive CLI Orchestrator
+├── hardware/fsu/              # Phase 2: gem5 FSU patches, workloads, scripts, results
+└── requirements.txt           # Python dependencies (rich, questionary)
 ```
 
 ## 🛠️ Step-by-Step Installation & Setup
@@ -56,7 +57,7 @@ hybrid-forensics-framework/
 **Installation**
 
 ```bash
-git clone https://github.com/vedhan7/hybrid-forensics-framework.git
+git clone https://github.com/itzz-inbathamizhanS/hybrid-forensics-framework.git
 cd hybrid-forensics-framework
 python -m venv venv
 ```
@@ -114,6 +115,12 @@ The Native RAM Scanner uses several heuristics to detect anomalies:
 *   **`RWX_GUARD_STAGED_PAYLOAD` (Risk 75)**: Executable pages marked with `PAGE_GUARD`.
 
 *Note: Known JIT engines and AV tools are safely whitelisted to a Risk Score of 10 to reduce CLI noise, while preserving visibility in the final JSON report.*
+
+## Phase 2: Hardware FSU (gem5)
+
+A Forensic Snoop Unit (FSU) is being modelled in gem5 inside the memory controller. It flags instruction fetches from pages that were written (W^X violations), halts the simulated CPU and dumps the page with a SHA-256 hash.
+The Python framework imports these results (`src/hardware/`) and shows them next to the software RAM-scan findings in one timeline.
+Status: simulation work in progress; no overhead numbers are claimed until measured. See `docs/fsu/` and `hardware/fsu/`.
 
 ## 🧪 Testing Suite (Master Revision Loop)
 
