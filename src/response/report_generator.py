@@ -37,6 +37,28 @@ class ReportGenerator:
             </tr>
             """
 
+        hw = report_data.get("hardware")
+        hardware_html = ""
+        if hw:
+            rows = "".join(
+                f"<tr><td>{e.get('timestamp')}</td><td>{e.get('event_type')}</td>"
+                f"<td>{e.get('description')}</td></tr>" for e in hw.get("events", []))
+            ev_rows = "".join(
+                f"<tr><td>{x.get('page')}</td><td>{x.get('size')}</td>"
+                f"<td><code>{x.get('sha256')}</code></td></tr>" for x in hw.get("evidence", []))
+            st = hw.get("stats", {})
+            stats_txt = ", ".join(f"{k}={v}" for k, v in st.items()) or "n/a"
+            hardware_html = f"""
+    <div class="card">
+        <h2>Hardware layer (FSU)</h2>
+        <p>Source: gem5 simulation. Timestamps are simulated time, not wall-clock.</p>
+        <p><strong>Run stats:</strong> {stats_txt}</p>
+        <table><tr><th>Sim time</th><th>Event</th><th>Detail</th></tr>{rows or "<tr><td colspan='3'>No FSU events.</td></tr>"}</table>
+        <h3>Evidence pages</h3>
+        <table><tr><th>Page</th><th>Bytes</th><th>SHA-256</th></tr>{ev_rows or "<tr><td colspan='3'>None.</td></tr>"}</table>
+    </div>
+"""
+
         html_content = f"""<!DOCTYPE html>
 <html>
 <head>
@@ -59,6 +81,7 @@ class ReportGenerator:
         <p><strong>Timestamp (UTC):</strong> {report_data.get('evidence_metadata', {}).get('intake_timestamp_utc', 'N/A')}</p>
     </div>
 
+    {hardware_html}
     <div class="card">
         <h2>Detected Threats & Anomalies</h2>
         <table>
